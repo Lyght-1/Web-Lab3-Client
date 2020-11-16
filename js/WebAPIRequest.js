@@ -7,7 +7,7 @@ function getBearerAuthorizationToken(){
 }
 
 
-const apiBaseURL= "https://scarce-thoughtful-opal.glitch.me/";
+const apiBaseURL= "https://scarce-thoughtful-opal.glitch.me";
 
 
 
