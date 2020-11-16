@@ -7,8 +7,7 @@ function getBearerAuthorizationToken(){
 }
 
 
-const apiBaseURL= "http://localhost:5000";
-//const apiBaseURL= "https://blushing-imaginary-streetcar.glitch.me/api/bookmarks";
+const apiBaseURL= "https://scarce-thoughtful-opal.glitch.me/";
 
 
 
