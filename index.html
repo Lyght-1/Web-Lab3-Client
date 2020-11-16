@@ -1,0 +1,890 @@
+<!--
+
+    Démonstration d'une page web cliente du service Web API items
+    Cette page offre les opérations CRUD sur une liste de items conservée dans une base de données du serveur.
+
+    C - Create - POST
+    R - Read   - GET
+    U - Update - PUT
+    D - Delete - DELETE
+
+    Code de la page : Nicolas Chourot
+    Service Web API : Nicolas Chourot
+
+    Date de mise à jour: 14 octobre 2020
+-->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta author="Nicolas Chourot">
+    <meta http-equiv="Content-Type" content="text/html; charset= ISO-8859-1">
+    <title>Gestion de favoris</title>
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+
+    <!-- Style pour les infobulles -->
+    <link rel="stylesheet" href="css/tooltip.css">
+
+    <!-- pour la dialogue de confirmation de retrait d'un item -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-confirm/3.3.2/jquery-confirm.min.css">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+    <!-- Style pour l'interface et la liste des items -->
+    <link rel="stylesheet" href="css/itemManagerLayout.css">
+
+    <!-- jQuery Ui css -->
+    <link rel="stylesheet" href="css/jquery-ui.css">
+
+    <!-- lien vers le favicon généré par https://favicon.io/favicon-converter/ -->
+    <link rel="icon" href="favicon.ico">
+
+    <style>
+        /* Arrière plan de la page */
+        body {
+            background: url(images/bg.png) no-repeat center center fixed;
+            -webkit-background-size: cover;
+            -moz-background-size: cover;
+            -o-background-size: cover;
+            background-size: cover;
+        }
+    </style>
+</head>
+
+<body>
+    <!---ALERT DIALOG--------------------------------------------------------------------------->   
+    <div id="dialog-alert" title="Erreur" class="dialog">
+        <h4>Message provenant du serveur...401</h4>
+        <img src="images/error.png" style="height: 40px;">
+        <p id="errorMsg">Message d'erreur</p>
+    </div>
+
+    <!---LOGIN DIALOG--------------------------------------------------------------------------->
+    <div id="dialog-loginForm" title="Connexion" class="dialog">
+        <form id="loginForm" class="form-group">
+            <input type="text" id="loginEmail" placeholder="Courriel" class="form-control" />
+            <br>
+            <input type="password" id="loginPassword" placeholder="Mot de passe" class="form-control" />
+            <br>
+            <div class="form-group form-check">
+                <input type="checkbox" class="form-check-input" id="remember-me">
+                <label class="form-check-label" for="remember-me">Se souvenir de moi</label>
+            </div>
+        </form>
+    </div>
+
+    <!---REGISTER DIALOG--------------------------------------------------------------------------->
+    <div id="dialog-registerForm" title="Inscription" class="dialog">
+        <form id="registerForm" class="form-group">
+            <input type="text" id="registerName" placeholder="Nom d'usager" class="form-control" />
+            <br>
+            <input type="text" id="registerEmail" placeholder="Courriel" class="form-control" />
+            <br>
+            <input type="password" id="registerPassword" placeholder="Mot de passe" class="form-control" />
+            <br>
+            <input type="password" id="registerConfirmPW" placeholder="Confirmation" class="form-control" />
+            <br>
+        </form>
+    </div>
+    <!-- Entête de la liste des items -->
+    <div class="container">
+        <div>
+            <h2><img src="images/bookmark_logo.png" style="height: 40px;">&nbsp;Gestionnaire de favoris</h2>
+            <div class="p-2">
+                <span id="usernameLabel" class="text-primary">non connecté</span>
+                <button id="login" tooltip="Connexion" tooltip-position="left">
+                    <span class="glyphicon glyphicon-log-in"></span>
+                </button>
+                <button id="logout" tooltip="Déconnection" tooltip-position="left">
+                    <span class="glyphicon glyphicon-log-out"></span>
+                </button>
+                <button id="profil" tooltip="Modifier le profil" tooltip-position="left">
+                    <span class="glyphicon glyphicon-pencil"></span>
+                </button>
+                <button id="register" tooltip="Créer un compte" tooltip-position="left">
+                    <span class="glyphicon glyphicon-pencil"></span>
+                </button>
+            </div>
+        </div>
+        <table>
+            <tr>
+                <td>
+                    <label for="search_name">Recherche par titre</label>
+                    <input type="search" placeholder="Recherche..." id="search_name">
+                    <button id="searchBy_name"><i class="fa fa-search"></i></button>
+                </td>
+                <td>&nbsp;&nbsp;</td>
+                <td>
+                    <label for="search_category">Recherche par catégorie</label>
+                    <input type="search" placeholder="Recherche..." id="search_category">
+                    <button id="searchBy_category"><i class="fa fa-search"></i></button>
+                </td>
+                <td>&nbsp;&nbsp;</td>
+                <td>
+                    <label for="search_username">Recherche par usager</label>
+                    <input type="search" placeholder="Recherche..." id="search_username">
+                    <button id="searchBy_username"><i class="fa fa-search"></i></button>
+                </td>
+            </tr>
+            <tr>
+                <td>&nbsp;</td>
+            </tr>
+        </table>
+
+        <div class="array-container">
+            <div class="header-container">
+                <div class="header-items-container columns-layout">
+                    <div id="sort_Name" class="sortcmd">Titre &nbsp;<span id="dir_Name"></span></div>
+                    <div id="sort_Url" class="sortcmd">Url &nbsp;<span id="dir_Url"></span></div>
+                    <div id="sort_Category" class="sortcmd">Catégorie &nbsp;<span id="dir_Category"></span></div>
+                    <div id="sort_Username" class="sortcmd">Usager &nbsp;<span id="dir_Username"></span></div>
+                    <div>
+                        <button id="showAdditem" tooltip="Ajouter un favori" tooltip-position="left">
+                            <span class="glyphicon glyphicon-plus"></span>
+                        </button>
+                    </div>
+                    <div>&nbsp;</div>
+                </div>
+            </div>
+            <div class="form-container">
+                <div class="form-item-container columns-layout" id="itemForm">
+                    <!--
+                        Formulaire de saisie/modification d'item:
+                        Contient les contrôles de saisie de l'item.
+                        Notez qu'elle sera masquée et n'apparaitra que dans le mode d'ajout ou modification
+                        d'item.
+                        -->
+                    <div>
+                        <!-- champ masqué qui recevra le id d'un item à modifier -->
+                        <input type="hidden" id="Id" />
+                        <input type="text" id="Name" placeholder="Titre" class="form-control" />
+                    </div>
+                    <div>
+                        <input type="text" id="Url" placeholder="Url" class="form-control" />
+                    </div>
+                    <div>
+                        <input type="text" id="Category" placeholder="Catégorie" class="form-control" />
+                    </div>
+                    <div></div>
+                    <div>
+                        <!-- bouton de commande d'ajout d'item -->
+                        <button id="additem" tooltip="Ajouter" tooltip-position="left">
+                            <span class="glyphicon glyphicon glyphicon-ok"></span>
+                        </button>
+                        <!-- bouton de commande de modification de item -->
+                        <button id="modifyitem" tooltip="Modifier" tooltip-position="left">
+                            <span class="glyphicon glyphicon-ok"></span>
+                        </button>
+                    </div>
+                    <div>
+                        <!-- bouton d'annulation -->
+                        <button id="cancel" tooltip="Annuler" tooltip-position="left">
+                            <span class="glyphicon glyphicon-repeat"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="item-list-scroll-containter">
+                <div class="item-list-container columns-layout" id="itemList">
+                    <!-- La liste de items sera injectée ici par du JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fichier local qui contient la librairie jQuery -->
+    <script src="js/jquery-3.3.1.js"></script>
+    <!-- Fichier local qui contient la librairie jQuery-ui -->
+    <script src="js/jquery-ui.js"></script>
+    <!-- Fichier local qui contient la librairie de Validation -->
+    <script src="js/Validation.js"></script>
+    <!-- Fichier local qui contient les fonctions de requête au service Web API -->
+    <script src="js/WebAPIRequest.js"></script>
+    <!-- Fichier local qui contient la librairie de dialogue de confirmation -->
+    <script src="js/jquery-confirm.js"></script>
+    <!-- Fichier local qui contient la librairie de gestion de champ masqué -->
+    <script src="js/jquery.maskedinput.js"></script>
+
+    <script>
+        "use strict";
+
+        $(document).ready(initUI);
+        let editMode = false;
+        let addMode = false;
+        let queryString = "";
+        let search = "";
+        //let sorted = [{field:"Name", desc:false}];
+        let sorted = [];
+
+        // objet d'automatisation de la validation des champs de formulaire
+        let validationProvider;
+        let validationProviderRegister;
+
+        // Initialisation de l'interface
+        function initUI() {
+            disconnect();
+            initValidation();
+            initValidationRegister();
+            initLoginDialog();
+            initRegisterDialog();
+            initAlertDialog();
+            eraseForm();
+
+            $('#login').show();
+            $('#register').show();
+            $('#profil').hide();
+            $('#logout').hide();
+            $("#showAdditem").hide();
+
+            // Gestionnaires du clic sur les boutons
+            $('#additem').click(additem);
+            $('#showAdditem').click(showAdditem);
+            $('#modifyitem').click(modifyitem);
+            $('#cancel').click(eraseForm);
+            $('#Name').keypress(textInputAlphaFilter);
+            $('#login').click(OpenLoginForm);
+            $('#register').click(OpenRegisterForm);
+            $('#logout').click(OpenConfirmLogout);
+            $('#profil').click(OpenRegisterForm);
+
+            $("#sort_Name").click(updateSort);
+            $("#sort_Url").click(updateSort);
+            $("#sort_Category").click(updateSort);
+            $("#sort_Username").click(updateSort);
+
+            $("#searchBy_name").click(updateSearch);
+            $("#searchBy_category").click(updateSearch);
+            $("#searchBy_username").click(updateSearch);
+
+            // Ajout d'un message d'attente de réponse du serveur.
+            // Cela peut prendre quelques secondes avant que le serveur Web
+            // redémarre après une longue période sans requête
+            insertWaitingStatus();
+
+            // Extraire la liste des items via le service web API
+            // et mettre à jour le tableau qui présente la liste de items
+            updateHead();
+
+            // Créer dynamiquement la classe css déterminant le nombre de colonnes et 
+            // leurs largeurs respectives
+            createCssClass('.columns-layout', "display: grid; grid-template-columns: 20% 40% 15% 15% 5% 5%;");
+        }
+
+        function updateSort(e) {
+            let name = e.target.id.split('_')[1];
+            console.log("target=", name);
+            $("#dir_" + name).removeClass("glyphicon glyphicon-sort-by-attributes");
+            $("#dir_" + name).removeClass("glyphicon glyphicon-sort-by-attributes-alt");
+            let found = false;
+            for (let i = 0; i < sorted.length; i++) {
+                if (sorted[i].field == name) {
+                    found = true;
+                    if (sorted[i].desc)
+                        sorted.splice(i, 1);
+                    else
+                        sorted[i].desc = true;
+                    break;
+                }
+            }
+            if (!found)
+                sorted.push({ field: name, desc: false });
+            updateHead();
+        }
+
+        function updateSearch() {
+            search = "";
+            let name = $("#search_name").val();
+            let category = $("#search_category").val();
+            let username = $("#search_username").val();
+            if (name != "" || category != "" || username != "") {
+                if (queryString != "")
+                    search = "&";
+                else
+                    search = "?";
+                if (name != "") {
+                    search += "name=" + name;
+                    if (category != "")
+                        search += "&category=" + category;
+                    if (username != "")
+                        search += "&username=" + username;
+                } else if(category != "") {
+                    search += "category=" + category;
+                    if (username != "")
+                        search += "&username=" + username;
+                }else{
+                    search += "username=" + username;
+                }
+            }
+            getitems();
+        }
+
+        function updateHead() {
+            queryString = "";
+            let first = true;
+            let sortIndex = 0;
+            sorted.forEach(sort => {
+                if (first) {
+                    first = false;
+                    queryString += '?';
+                }
+                else queryString += '&';
+                queryString += "sort=" + sort.field.toLowerCase();
+                // opacité en fonction du rang de la clé de tri
+                $("#dir_" + sort.field).css("opacity", 1 - sortIndex / 3);
+                if (sort.desc) {
+                    queryString += ',desc';
+                    $("#dir_" + sort.field).addClass('glyphicon glyphicon-sort-by-attributes-alt');
+                } else
+                    $("#dir_" + sort.field).addClass('glyphicon glyphicon-sort-by-attributes');
+                sortIndex++;
+            });
+            updateSearch();
+        }
+
+        function createCssClass(name, rules) {
+            var style = document.createElement('style');
+            style.type = 'text/css';
+            document.getElementsByTagName('head')[0].appendChild(style);
+            if (!(style.sheet || {}).insertRule)
+                (style.styleSheet || style.sheet).addRule(name, rules);
+            else
+                style.sheet.insertRule(name + "{" + rules + "}", 0);
+        }
+
+        function insertWaitingStatus() {
+            $('#itemList').empty()
+            $('#itemList').append(makeCell("En attente de réponse du service Web...", "waiting"));
+            $('#itemList').append($('<img src="images/Loading_icon.gif" alt="waiting"/>'));
+        }
+
+        function insertErrorStatus(status) {
+            $('#itemList').empty()
+            $('#itemList').append($('<img src="images/error.png" style="width:60px;margin:10px" alt="httpError"/>'));
+            $('#itemList').append(makeCell("Erreur de requête au service Web...Faites F5 pour effacer ce message.", "httpError"));
+            $('#itemList').append(makeCell(status, "httpError"));
+        }
+
+        function initValidation() {
+            validationProvider = new ValidationProvider();
+            validationProvider.addControl("Name", validate_Name);
+            validationProvider.addControl("Url", validate_Url);
+            validationProvider.addControl("Category", validate_Category);
+        }
+
+        function initValidationRegister() {
+            validationProviderRegister = new ValidationProvider();
+            validationProviderRegister.addControl("registerName", ()=>validateUserName("registerName"));
+            validationProviderRegister.addControl("registerEmail", ()=>validateEmail("registerEmail"));
+            validationProviderRegister.addControl("registerPassword", ()=>validatePassword("registerPassword"));
+            validationProviderRegister.addControl("registerConfirmPW", ()=>validateConfirmPW("registerConfirmPW"));
+        }
+
+        function resetValidation() {
+            validationProvider.reset();
+        }
+
+        function validateUserName(id){
+            let TBX_FirstName = document.getElementById(id);
+            if (TBX_FirstName.value === "")
+                return "Nom d'usager manquant";
+            return "";
+        }
+
+        function validateEmail(id){
+            let TBX_Email = document.getElementById(id);
+            let emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
+            if (TBX_Email.value === "")
+                return "Email manquant";
+            if (!emailRegex.test(TBX_Email.value))
+                return "Email invalide";
+            return "";
+        }
+
+        function validatePassword(id){
+            let TBX_Password = document.getElementById(id);
+            if (TBX_Password.value === "")
+                return "Mot de passe manquant";
+            return "";
+        }
+
+        function validateConfirmPW(id){
+            let TBX_Password = document.getElementById(id);
+            if (TBX_Password.value === "")
+                return "Confirmation manquante";
+            if (TBX_Password.value != document.getElementById("registerPassword").value)
+                return "Confirmation ne correspond pas au mot de passe";
+            return "";
+        }
+
+        function validate_Name() {
+            let TBX_FirstName = document.getElementById("Name");
+            if (TBX_FirstName.value === "")
+                return "Titre manquant";
+            return "";
+        }
+
+        function validate_Category() {
+            let TBX_LastName = document.getElementById("Category");
+            if (TBX_LastName.value === "")
+                return "Catégorie manquante";
+            return "";
+        }
+
+        function validate_Url() {
+            let TBX_Url = document.getElementById("Url");
+            let UrlRegex = /(http|https):\/\/(\w+:{0,1}\w*)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%!\-\/]))?/;
+            if (TBX_Url.value === "")
+                return "URL manquant";
+            if (!UrlRegex.test(TBX_Url.value))
+                return "URL invalide";
+            return "";
+        }
+
+        // Effacer les contrôles de saisie/modification d'un item
+        // et rétablir la visibilité des boutons
+        function eraseForm() {
+            addMode = false;
+            editMode = false;
+            resetValidation();
+
+            // rétablir la couleur de fond de toutes les rangées
+            $('.cell').removeClass('selectedRow');
+
+            // masquer le formulaire de saisie/modification de item
+            $('#itemForm').hide({ duration: 400 });
+
+            // Rétablir la visibilité par défaut des boutons
+            if(localStorage.getItem("access_token") != null){
+                $('#additem').show();
+                $('#modifyitem').hide();
+                $('#showAdditem').show();
+            }
+
+            // Effacer les champs du formulaire
+            $('#Name').val('');
+            $('#Url').val('');
+            $('#Category').val('');
+
+            // Masquer tous les boutons des rangées d'item
+            $('#itemList button').hide();
+        }
+
+        // Requête au service web API: Liste des items
+        function getitems() {
+            console.log(queryString + search);
+            webAPI_GET_ALL(queryString + search, updateitemList, insertErrorStatus);
+        }
+
+        // Afficher le formulaire pour la saisie de item
+        function showAdditem() {
+            addMode = true;
+            $('#itemForm').show({ duration: 400 });
+            $('#showAdditem').hide();
+        }
+
+        // Afficher le formulaire pour la modification de item
+        function showEdititem(e) {
+            editMode = true;
+            $('#showAdditem').hide();
+            $('#additem').hide();
+            $('#itemForm').show({ duration: 400 });
+
+            let itemId = parseInt(e.currentTarget.id.split('_')[1]);
+
+            // Extraction du item de Id = itemId via le service web API
+            webAPI_GET(itemId, ShowForm, (error)=>{eraseForm();});
+        }
+
+        function ShowForm(item) {
+            // peupler les contrôles de saisie
+            $('#Id').val(item.Id); // input caché qui mémorise le Id du item
+            $('#Name').val(item.Name);
+            $('#Url').val(item.Url);
+            $('#Category').val(item.Category);
+            $('#modifyitem').show();
+        }
+
+        // Retourne un objet item à partir des valeurs prélevées se trouvant dans les contrôles de saisie.
+        // Si le paramètre includeId est vrai, inclure le Id du item dans l'objet item retourné
+        function makeitemFromForm(includeId = false) {
+            if (includeId) {
+                // Récupération du Id du item dans le contrôle caché
+                let itemId = parseInt($('#Id').val());
+                return { Id: itemId, Name: $('#Name').val(), Url: $('#Url').val(), Category: $('#Category').val() };
+            }
+            return { Id: 0, Name: $('#Name').val(), Url: $('#Url').val(), Category: $('#Category').val() };
+        }
+
+        // Ajout d'un item
+        function additem() {
+            let item = makeitemFromForm();
+            if (validationProvider.isValid()) {
+                item.UserId = parseInt(localStorage.getItem("userId"));
+                webAPI_POST(item, getitems, 
+                ()=>{
+                    eraseForm();
+                    disconnect();
+                    OpenLoginForm();  
+                });
+            }
+        }
+
+        // Requête au service Web API: Modification d'un item
+        function modifyitem() {
+            // construction de l'objet item
+            let item = makeitemFromForm(true);
+            if (validationProvider.isValid()) {
+                item.UserId = parseInt(localStorage.getItem("userId"));
+                webAPI_PUT(item, getitems, 
+                ()=>{
+                    eraseForm();
+                    disconnect();
+                    OpenLoginForm();  
+                });
+            }
+        }
+
+        // Après confirmation, requête au service Web API de retrait d'un item
+        function deleteitem(e) {
+            // Extraction du Id du item inscrit dans l'attribut id de l'élément déclencheur de l'événement click
+            let itemId = parseInt(e.currentTarget.id.split('_')[1]);
+            webAPI_GET(itemId, confirmDeleteitem, ()=>{
+                disconnect();
+                OpenLoginForm();  
+            });
+        }
+
+        function confirmDeleteitem(item) {
+            console.log(item)
+            $.confirm({
+                title: 'Attention!',
+                content: 'Effacer ' + item.Name + '?',
+                buttons: {
+                    confirmer: function () {
+                        webAPI_DELETE(item.Id, getitems, insertErrorStatus);
+                    },
+                    annuler: {},
+                }
+            });
+        }
+
+        function cellOver(e) {
+            if (!addMode && !editMode) {
+                // currentTarget.className contient en principe : 'row_x cell ...'
+                let itemId = e.currentTarget.className.split(' ')[0].split('_')[1];
+                $('#edit_' + itemId).show();
+                $('#delete_' + itemId).show();
+                $('.row_' + itemId).addClass('selectedRow');
+            }
+        }
+        function cellBlur(e) {
+            if (!editMode) {
+                // currentTarget.className contient en principe : 'row_x cell ...'
+                let itemId = e.currentTarget.className.split(' ')[0].split('_')[1];
+                $('#edit_' + itemId).hide();
+                $('#delete_' + itemId).hide();
+                $('.row_' + itemId).removeClass('selectedRow');
+            }
+        }
+
+        function makeCell(content, cssClass) {
+            return $('<div class= "' + cssClass + '">' + content + '</div>');
+        }
+
+        function makeButton(cssClass, id, tooltip) {
+            return $('<button id="' + id + '" class="' + cssClass + '"tooltip="' + tooltip + '" tooltip-position="left"></button>');
+        }
+
+        function makeGlyphIcon(glyphIconId) {
+            return $("<span class='glyphicon glyphicon-" + glyphIconId + "'></span>");
+        }
+
+        function makeHyperLink(url, caption) {
+            return '<a href="' + url + '"target="_blank">' + caption + '</a>';
+        }
+
+        // Utiliser l'API de google pour extraire le favicon du site pointé par url
+        // retourne un élément div comportant le favicon en tant qu'image de fond
+        function makeFavicon(url) {
+            if (url.slice(-1) != '/') url += '/';
+            url = "http://www.google.com/s2/favicons?sz=64&domain=" + url;
+            return '<div class="favicon" style="background-image: url(' + url + ');"></div>';
+        }
+
+        // Rafraichir la liste des items
+        // paramètre items: tableau d'objets item
+        function updateitemList(items) {
+            eraseForm();
+            var oddRow = true;
+            // effacer le tableau affichant la liste des items
+            $('#itemList').empty();
+
+            // pour tous les items du tableau items
+            items.forEach(item => { // créer une nouvelle rangée
+
+                // déterminer la couleur de la rangée
+                let bgColorRow = "row_" + item.Id + " cell " + (oddRow ? "oddRow" : "evenRow");
+
+                // Distribution des données de l'item dans des cellules de la rangée
+                $('#itemList').append(makeCell(item.Name, bgColorRow + " ellipsis"));
+                $('#itemList').append(makeCell(makeHyperLink(item.Url, makeFavicon(item.Url) + item.Url), bgColorRow + " ellipsis"));
+                $('#itemList').append(makeCell(item.Category, bgColorRow + " ellipsis"));
+
+                let itemUserName = "";
+                if(item.Username != localStorage.getItem("username")){
+                    itemUserName = item.Username;
+                }
+                $('#itemList').append(makeCell(itemUserName,bgColorRow + " ellipsis"));
+
+                let cellEdit;
+                let cellDelete;
+                if(localStorage.getItem("access_token") != null && itemUserName === ""){
+                    cellEdit = makeCell("", bgColorRow).append(
+                            makeButton("edititem", "edit_" + item.Id, "Modifier " + item.Name).append(
+                                makeGlyphIcon('pencil')));
+                    cellDelete = makeCell("", bgColorRow).append(
+                                    makeButton("deleteitem", "delete_" + item.Id, "Effacer " + item.Name).append(
+                                        makeGlyphIcon('remove')));
+                }else{
+                    cellEdit = makeCell("", bgColorRow);
+                    cellDelete = makeCell("",bgColorRow);
+                }
+                // Bouton d'appel à la modification de l'item
+                $('#itemList').append(cellEdit);
+                // Bouton d'appel au retrait de l'item
+                $('#itemList').append(cellDelete);
+                oddRow = !oddRow;
+            });
+
+            // Attacher les gestionnaires du clic aux nouveaux boutons
+            $('.edititem').click(showEdititem);
+            $('.deleteitem').click(deleteitem);
+            $('#itemList button').hide();
+            // empecher la fonction coller
+            //$('input').on("paste",function(e) { e.preventDefault(); });
+
+            // Attacher les événements pour mettre en surbrillance une rangée survolée
+            $('.cell').mouseover(cellOver);
+            $('.cell').mouseleave(cellBlur);
+        }
+
+        function initLoginDialog() {
+            $("#dialog-loginForm").dialog(
+                {
+                    autoOpen: false,
+                    show: { effect: 'fade', speed: 400 },
+                    hide: { effect: 'fade', speed: 400 },
+                    buttons: [
+                        {
+                            id: 'btn-OkLogin',
+                            text: 'Ok',
+                            click: function () {
+                                webAPI_login($("#loginEmail").val(), $("#loginPassword").val(),
+                                //pauseBookmarksListPeriodicRefresh = false,
+                                () => { $("#dialog-loginForm").dialog("close"); updateUI(true); eraseForm();getitems(); },
+                                (errorMsg) => {$("#dialog-loginForm").dialog("close"); Fail(errorMsg)})
+                            }
+                        },
+                        {
+                            id: 'btn-CancelLogin',
+                            text : 'Annuler',
+                                click : function() {
+                                    $(this).dialog('close');
+                                }
+                        }
+                    ]
+                });
+            $('#dialog-loginForm').on('dialogopen', function (event) {
+                //pauseBookmarksListPeriodicRefresh = true;
+                if (localStorage.getItem('rememberme') == "1") {
+                    $("#remember-me").attr("checked", "checked");
+                    let email = localStorage.getItem('loginemail');
+                    let password = localStorage.getItem('loginpassword');
+                    if (email) $("#loginEmail").val(email);
+                    if (password) $("#loginPassword").val(password);
+                } else {
+                    $("#loginEmail").val("");
+                    $("#loginPassword").val("");
+                }
+            });
+            $('#dialog-loginForm').on('dialogclose', function (event) {
+                //pauseBookmarksListPeriodicRefresh = false;
+                if ($('#remember-me').is(":checked")) {
+                    localStorage.setItem('rememberme', "1");
+                    localStorage.setItem('loginemail', $("#loginEmail").val());
+                    localStorage.setItem('loginpassword', $("#loginPassword").val());
+                } else {
+                    localStorage.setItem('rememberme', "0");
+                    localStorage.removeItem('loginemail');
+                    localStorage.removeItem('loginpassword');
+                }
+            });
+        }
+
+        function initRegisterDialog() {
+            $("#dialog-registerForm").dialog(
+                {
+                    autoOpen: false,
+                    show: { effect: 'fade', speed: 400 },
+                    hide: { effect: 'fade', speed: 400 },
+                    buttons: [
+                        {
+                            id: 'btn-OkRegister',
+                            text: 'Enregister',
+                            click: function () {
+                                let data = {Id : getUserId(), Name: $("#registerName").val(), Email: $("#registerEmail").val(), Password: $("#registerPassword").val()};
+                                
+                                if(localStorage.getItem('access_token') != null){
+                                    webAPI_changeProfil(data,
+                                    () => { 
+                                        $("#dialog-registerForm").dialog("close");
+                                        clearRegisterForm(); 
+                                        updateUI(true);
+                                    },
+                                    (errorMsg) => { 
+                                        $("#dialog-registerForm").dialog("close"); 
+                                        clearRegisterForm();
+                                        Fail(errorMsg);
+                                        disconnect(); 
+                                        updateUI(false);
+                                    });
+                                }else{
+                                    webAPI_register(data,
+                                        //pauseBookmarksListPeriodicRefresh = false,
+                                        () => { $("#dialog-registerForm").dialog("close");clearRegisterForm(); Login(data.Email,data.Password);},
+                                        (errorMsg) => { $("#dialog-registerForm").dialog("close"); clearRegisterForm();Fail(errorMsg);})
+                                }
+                            }
+                        },
+                        {
+                            id: 'btn-CancelRegister',
+                            text : 'Annuler',
+                                click : function() {
+                                    $(this).dialog('close');
+                                }
+                        },
+                        {
+                            id: 'btn-Delete',
+                            text : 'Supprimer le compte',
+                                click : function() {
+                                    webAPI_removeProfil(localStorage.getItem('userId'),
+                                    ()=> {$("#dialog-registerForm").dialog("close"); disconnect(); updateUI(false);},
+                                    (errorMsg)=> {$("#dialog-registerForm").dialog("close"); disconnect(); updateUI(false); Fail(errorMsg)});
+                                }
+                        }
+                    ]
+                });
+            $('#dialog-registerForm').on('dialogopen', function (event) {
+                //pauseBookmarksListPeriodicRefresh = true;
+                if (localStorage.getItem('access_token') != null) {
+                    $("#registerName").val(localStorage.getItem("username"));
+                    $("#registerEmail").val(localStorage.getItem('Email'));
+                    $("#btn-Delete").show();
+                } else {
+                    $("#registerName").val("");
+                    $("#registerEmail").val("");
+                    $("#btn-Delete").hide();
+                }
+            });
+        }
+        function initAlertDialog() {
+            $("#dialog-alert").dialog(
+                {
+                    autoOpen: false,
+                    show: { effect: 'fade', speed: 400 },
+                    hide: { effect: 'fade', speed: 400 },
+                    buttons: [
+                        {
+                            id: 'btn-CancelAlert',
+                            text : 'Fermer',
+                                click : function() {
+                                    $(this).dialog('close');
+                                }
+                        }
+                    ]
+                });
+        }
+        function OpenConfirmLogout() {
+            $.confirm({
+                title: 'Déconnection...',
+                content: 'Voulez-vous vous déconnecter?',
+                buttons: {
+                    confirmer: function () {
+                        //pauseBookmarksListPeriodicRefresh = false;
+                        disconnect();
+                        updateUI(false);
+                    },
+                    annuler: {},
+                }
+            });
+        }
+        function OpenLoginForm() {
+            $('#btn-OkLogin').addClass("btn btn-primary");
+            $('#btn-CancelLogin').addClass("btn btn-secondary");
+            $("#dialog-loginForm").dialog('open');
+        }
+
+        function OpenRegisterForm(){
+            $('#btn-OkRegister').addClass("btn btn-primary");
+            $('#btn-CancelRegister').addClass("btn btn-secondary");
+            $('#btn-Delete').addClass("btn btn-danger");
+            $("#dialog-registerForm").dialog('open');
+        }
+
+        function Fail(errorMsg){
+            $("#dialog-alert").dialog('open');
+            $("#errorMsg").text(errorMsg);
+        }
+
+        function Login(email,pw){
+            webAPI_login(email, pw,
+            () => {updateUI(true); eraseForm();}, 
+            (errorMsg) => { Fail(errorMsg);});
+        }
+
+        function updateUI(logged){
+            if(logged){
+                $("#usernameLabel").text(localStorage.getItem('username'));
+                $('#login').hide();
+                $('#register').hide();
+                $('#profil').show();
+                $('#logout').show();
+            }else{
+                $("#usernameLabel").text("non connecté");
+                $('#login').show();
+                $('#register').show();
+                $('#profil').hide();
+                $('#logout').hide();
+            }
+        }
+
+        function disconnect(){
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('username');
+            localStorage.removeItem('Email');
+            localStorage.removeItem('userId');
+            $("addItem").hide();
+            $("showAddItem").hide();
+        }
+
+        function clearRegisterForm(){
+            $('#registerName').val('');
+            $('#registerEmail').val('');
+            $('#registerPassword').val('');
+            $('#registerConfirmPW').val('');
+            validationProviderRegister.reset();
+            getitems();
+        }
+
+        function getUserId(){
+            if(localStorage.getItem('userId') == null)
+                return 0;
+            else
+                return parseInt(localStorage.getItem('userId'));
+        }
+    </script>
+</body>
+
+</html>
